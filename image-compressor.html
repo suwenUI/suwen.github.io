@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能照片压缩工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.6s ease-out',
+                        'slide-up': 'slideUp 0.8s ease-out',
+                        'bounce-gentle': 'bounceGentle 2s infinite',
+                        'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
+                        'scale-in': 'scaleIn 0.4s ease-out',
+                        'float': 'float 3s ease-in-out infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .glass-effect {
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .card-shadow {
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            }
+            .hover-lift {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            .hover-lift:hover {
+                transform: translateY(-8px);
+                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+        
+        @keyframes bounceGentle {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+        
+        @keyframes pulseSoft {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+        
+        @keyframes scaleIn {
+            from { 
+                opacity: 0; 
+                transform: scale(0.9); 
+            }
+            to { 
+                opacity: 1; 
+                transform: scale(1); 
+            }
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        
+        .image-preview {
+            transition: all 0.3s ease;
+        }
+        
+        .image-preview:hover {
+            transform: scale(1.02);
+        }
+        
+        .progress-ring {
+            transition: stroke-dasharray 0.3s ease;
+        }
+        
+        .quality-slider {
+            appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #10B981 0%, #3B82F6 100%);
+            outline: none;
+        }
+        
+        .quality-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #3B82F6;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .quality-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        }
+        
+        .drop-zone {
+            transition: all 0.3s ease;
+        }
+        
+        .drop-zone.drag-over {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: #3B82F6;
+            transform: scale(1.01);
+        }
+    </style>
+</head>
+
+<body class="font-inter bg-gradient-to-br from-blue-50 via-white to-green-50 min-h-screen">
+    <!-- Header -->
+    <header class="text-center py-12 animate-fade-in">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-primary to-secondary rounded-2xl mb-6 animate-float">
+                <i class="fa fa-compress text-white text-2xl"></i>
+            </div>
+            <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-dark mb-4">
+                智能照片压缩工具
+            </h1>
+            <p class="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
+                快速、高效地压缩您的照片，保持高质量的同时显著减小文件大小
+            </p>
+            <div class="flex flex-wrap justify-center gap-4 text-sm text-gray-500">
+                <span class="flex items-center">
+                    <i class="fa fa-check-circle text-secondary mr-2"></i>
+                    浏览器端处理，保护隐私
+                </span>
+                <span class="flex items-center">
+                    <i class="fa fa-check-circle text-secondary mr-2"></i>
+                    支持多种格式
+                </span>
+                <span class="flex items-center">
+                    <i class="fa fa-check-circle text-secondary mr-2"></i>
+                    实时预览效果
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 pb-16">
+        <!-- Upload Section -->
+        <section class="mb-12 animate-slide-up">
+            <div class="max-w-4xl mx-auto">
+                <!-- Drop Zone -->
+                <div 
+                    id="dropZone" 
+                    class="drop-zone border-2 border-dashed border-gray-300 rounded-3xl p-8 text-center hover:border-primary transition-all duration-300 card-shadow bg-white"
+                >
+                    <div class="space-y-4">
+                        <div class="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-4 animate-pulse-soft">
+                            <i class="fa fa-cloud-upload text-primary text-3xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-dark">上传照片</h3>
+                        <p class="text-gray-600">拖拽照片到这里，或点击选择文件</p>
+                        <div class="flex flex-wrap justify-center gap-4">
+                            <label class="px-6 py-3 bg-primary text-white rounded-xl cursor-pointer hover:bg-blue-600 transition-colors duration-300 hover-lift">
+                                <i class="fa fa-file-image-o mr-2"></i>
+                                选择照片
+                                <input type="file" id="fileInput" accept="image/*" class="hidden">
+                            </label>
+                            <button 
+                                id="cameraBtn" 
+                                class="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors duration-300 hover-lift"
+                            >
+                                <i class="fa fa-camera mr-2"></i>
+                                拍照
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File Input for Camera -->
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
+            </div>
+        </section>
+
+        <!-- Compression Controls (Hidden by default) -->
+        <section id="compressionControls" class="mb-12 hidden animate-scale-in">
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white rounded-3xl p-8 card-shadow">
+                    <h3 class="text-2xl font-bold text-dark mb-6 flex items-center">
+                        <i class="fa fa-sliders text-primary mr-3"></i>
+                        压缩设置
+                    </h3>
+                    
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <!-- Quality Control -->
+                        <div class="space-y-4">
+                            <label class="block text-sm font-medium text-gray-700">
+                                压缩质量
+                                <span id="qualityValue" class="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">80%</span>
+                            </label>
+                            <input 
+                                type="range" 
+                                id="qualitySlider" 
+                                min="10" 
+                                max="100" 
+                                value="80" 
+                                class="quality-slider w-full"
+                            >
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>低质量</span>
+                                <span>高质量</span>
+                            </div>
+                        </div>
+
+                        <!-- Output Format -->
+                        <div class="space-y-4">
+                            <label class="block text-sm font-medium text-gray-700">输出格式</label>
+                            <select id="formatSelect" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-300">
+                                <option value="image/jpeg">JPEG (推荐照片)</option>
+                                <option value="image/png">PNG (支持透明)</option>
+                                <option value="image/webp">WebP (最佳压缩)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap justify-center gap-4 mt-8">
+                        <button 
+                            id="compressBtn" 
+                            class="px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300 hover-lift flex items-center"
+                        >
+                            <i class="fa fa-magic mr-2"></i>
+                            开始压缩
+                        </button>
+                        <button 
+                            id="resetBtn" 
+                            class="px-8 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors duration-300 hover-lift"
+                        >
+                            <i class="fa fa-bullseye mr-2"></i>
+                            重置
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Preview Section (Hidden by default) -->
+        <section id="previewSection" class="mb-12 hidden animate-slide-up">
+            <div class="max-w-6xl mx-auto">
+                <h3 class="text-2xl font-bold text-dark mb-8 text-center">压缩效果对比</h3>
+                
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Original Image -->
+                    <div class="bg-white rounded-3xl p-6 card-shadow hover-lift">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-lg font-semibold text-dark flex items-center">
+                                <i class="fa fa-image text-gray-500 mr-2"></i>
+                                原图
+                            </h4>
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">文件大小</div>
+                                <div id="originalSize" class="font-semibold text-red-500"></div>
+                            </div>
+                        </div>
+                        <div class="relative overflow-hidden rounded-2xl bg-gray-100">
+                            <img id="originalImage" class="image-preview w-full h-auto rounded-2xl" alt="原图预览">
+                            <div class="absolute bottom-4 left-4 right-4">
+                                <div class="bg-black bg-opacity-50 text-white px-3 py-1 rounded-lg text-sm">
+                                    <span id="originalDimensions"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Compressed Image -->
+                    <div class="bg-white rounded-3xl p-6 card-shadow hover-lift">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-lg font-semibold text-dark flex items-center">
+                                <i class="fa fa-check-circle text-secondary mr-2"></i>
+                                压缩后
+                            </h4>
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">文件大小</div>
+                                <div id="compressedSize" class="font-semibold text-secondary"></div>
+                            </div>
+                        </div>
+                        <div class="relative overflow-hidden rounded-2xl bg-gray-100">
+                            <img id="compressedImage" class="image-preview w-full h-auto rounded-2xl" alt="压缩后预览">
+                            <div class="absolute bottom-4 left-4 right-4">
+                                <div class="bg-black bg-opacity-50 text-white px-3 py-1 rounded-lg text-sm">
+                                    <span id="compressedDimensions"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compression Stats -->
+                <div class="mt-8 bg-gradient-to-r from-blue-50 to-green-50 rounded-3xl p-6 card-shadow">
+                    <div class="grid md:grid-cols-3 gap-6 text-center">
+                        <div class="space-y-2">
+                            <div class="text-2xl font-bold text-secondary" id="compressionRatio">0%</div>
+                            <div class="text-sm text-gray-600">压缩率</div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="text-2xl font-bold text-primary" id="sizeReduction">0 MB</div>
+                            <div class="text-sm text-gray-600">节省空间</div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="text-2xl font-bold text-accent" id="compressionTime">0s</div>
+                            <div class="text-sm text-gray-600">压缩时间</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Download Section (Hidden by default) -->
+        <section id="downloadSection" class="hidden animate-scale-in">
+            <div class="max-w-4xl mx-auto text-center">
+                <div class="bg-gradient-to-r from-secondary to-primary rounded-3xl p-8 text-white card-shadow">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-2xl mb-6 animate-bounce-gentle">
+                        <i class="fa fa-download text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">压缩完成！</h3>
+                    <p class="mb-6 opacity-90">您的照片已成功压缩，可以下载使用了</p>
+                    <div class="flex flex-wrap justify-center gap-4">
+                        <a 
+                            id="downloadBtn" 
+                            href="#" 
+                            download="compressed-image" 
+                            class="px-8 py-3 bg-white text-primary rounded-xl font-semibold hover:bg-gray-100 transition-colors duration-300 hover-lift flex items-center"
+                        >
+                            <i class="fa fa-download mr-2"></i>
+                            下载压缩照片
+                        </a>
+                        <button 
+                            id="downloadAllBtn" 
+                            class="px-8 py-3 border-2 border-white text-white rounded-xl font-semibold hover:bg-white hover:text-primary transition-colors duration-300 hover-lift"
+                        >
+                            <i class="fa fa-files-o mr-2"></i>
+                            下载所有照片
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading Modal (Hidden by default) -->
+        <div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-3xl p-8 max-w-md w-full mx-4 text-center card-shadow animate-scale-in">
+                <div class="relative w-24 h-24 mx-auto mb-6">
+                    <svg class="w-24 h-24 transform -rotate-90">
+                        <circle cx="48" cy="48" r="40" stroke="#f3f4f6" stroke-width="8" fill="none"></circle>
+                        <circle 
+                            id="progressCircle" 
+                            cx="48" 
+                            cy="48" 
+                            r="40" 
+                            stroke="#3B82F6" 
+                            stroke-width="8" 
+                            fill="none" 
+                            stroke-linecap="round"
+                            class="progress-ring"
+                            stroke-dasharray="251.2"
+                            stroke-dashoffset="251.2"
+                        ></circle>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span id="progressText" class="text-xl font-bold text-primary">0%</span>
+                    </div>
+                </div>
+                <h3 class="text-xl font-bold text-dark mb-2">正在压缩...</h3>
+                <p id="loadingMessage" class="text-gray-600">处理中，请稍候</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-8">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <div class="flex justify-center items-center space-x-6 mb-4">
+                <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">
+                    <i class="fa fa-question-circle text-xl"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">
+                    <i class="fa fa-cog text-xl"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">
+                    <i class="fa fa-heart text-xl"></i>
+                </a>
+            </div>
+            <p class="text-gray-400 text-sm">
+                智能照片压缩工具 © 2025 | 所有压缩均在本地完成，保护您的隐私
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        class ImageCompressor {
+            constructor() {
+                this.initializeElements();
+                this.initializeEventListeners();
+                this.selectedFiles = [];
+                this.compressedFiles = [];
+                this.currentFile = null;
+            }
+
+            initializeElements() {
+                // Upload elements
+                this.dropZone = document.getElementById('dropZone');
+                this.fileInput = document.getElementById('fileInput');
+                this.cameraBtn = document.getElementById('cameraBtn');
+                this.cameraInput = document.getElementById('cameraInput');
+
+                // Control elements
+                this.compressionControls = document.getElementById('compressionControls');
+                this.qualitySlider = document.getElementById('qualitySlider');
+                this.qualityValue = document.getElementById('qualityValue');
+                this.formatSelect = document.getElementById('formatSelect');
+                this.compressBtn = document.getElementById('compressBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+
+                // Preview elements
+                this.previewSection = document.getElementById('previewSection');
+                this.originalImage = document.getElementById('originalImage');
+                this.compressedImage = document.getElementById('compressedImage');
+                this.originalSize = document.getElementById('originalSize');
+                this.compressedSize = document.getElementById('compressedSize');
+                this.originalDimensions = document.getElementById('originalDimensions');
+                this.compressedDimensions = document.getElementById('compressedDimensions');
+
+                // Stats elements
+                this.compressionRatio = document.getElementById('compressionRatio');
+                this.sizeReduction = document.getElementById('sizeReduction');
+                this.compressionTime = document.getElementById('compressionTime');
+
+                // Download elements
+                this.downloadSection = document.getElementById('downloadSection');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.downloadAllBtn = document.getElementById('downloadAllBtn');
+
+                // Loading elements
+                this.loadingModal = document.getElementById('loadingModal');
+                this.progressCircle = document.getElementById('progressCircle');
+                this.progressText = document.getElementById('progressText');
+                this.loadingMessage = document.getElementById('loadingMessage');
+            }
+
+            initializeEventListeners() {
+                // Upload events
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                this.cameraBtn.addEventListener('click', () => this.cameraInput.click());
+                this.cameraInput.addEventListener('change', (e) => this.handleFileSelect(e));
+
+                // Drag and drop events
+                this.dropZone.addEventListener('dragover', (e) => this.handleDragOver(e));
+                this.dropZone.addEventListener('drop', (e) => this.handleDrop(e));
+                this.dropZone.addEventListener('dragleave', () => this.handleDragLeave());
+
+                // Control events
+                this.qualitySlider.addEventListener('input', (e) => this.updateQualityValue(e));
+                this.compressBtn.addEventListener('click', () => this.startCompression());
+                this.resetBtn.addEventListener('click', () => this.resetForm());
+
+                // Download events
+                this.downloadBtn.addEventListener('click', () => this.downloadCurrentImage());
+                this.downloadAllBtn.addEventListener('click', () => this.downloadAllImages());
+            }
+
+            handleFileSelect(event) {
+                const files = event.target.files;
+                if (files.length > 0) {
+                    this.selectedFiles = Array.from(files);
+                    this.currentFile = this.selectedFiles[0];
+                    this.showFilePreview();
+                }
+            }
+
+            handleDragOver(event) {
+                event.preventDefault();
+                this.dropZone.classList.add('drag-over');
+            }
+
+            handleDragLeave() {
+                this.dropZone.classList.remove('drag-over');
+            }
+
+            handleDrop(event) {
+                event.preventDefault();
+                this.dropZone.classList.remove('drag-over');
+                
+                const files = event.dataTransfer.files;
+                if (files.length > 0) {
+                    this.selectedFiles = Array.from(files);
+                    this.currentFile = this.selectedFiles[0];
+                    this.showFilePreview();
+                }
+            }
+
+            showFilePreview() {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.originalImage.src = e.target.result;
+                    this.originalImage.onload = () => {
+                        this.updateOriginalInfo();
+                        this.showControls();
+                    };
+                };
+                reader.readAsDataURL(this.currentFile);
+            }
+
+            updateOriginalInfo() {
+                // Update file size
+                const size = this.formatFileSize(this.currentFile.size);
+                this.originalSize.textContent = size;
+
+                // Update dimensions
+                const dimensions = `${this.originalImage.width} × ${this.originalImage.height}`;
+                this.originalDimensions.textContent = dimensions;
+            }
+
+            showControls() {
+                this.compressionControls.classList.remove('hidden');
+                this.previewSection.classList.remove('hidden');
+                
+                // Scroll to controls smoothly
+                this.compressionControls.scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+
+            updateQualityValue(event) {
+                const value = event.target.value;
+                this.qualityValue.textContent = `${value}%`;
+            }
+
+            async startCompression() {
+                this.showLoading();
+                
+                try {
+                    const startTime = performance.now();
+                    
+                    // Simulate progress for better UX
+                    await this.simulateProgress();
+                    
+                    // Perform actual compression
+                    const compressedFile = await this.compressImage(
+                        this.currentFile,
+                        parseInt(this.qualitySlider.value) / 100,
+                        this.formatSelect.value
+                    );
+                    
+                    const endTime = performance.now();
+                    const duration = ((endTime - startTime) / 1000).toFixed(1);
+                    
+                    this.compressedFiles.push(compressedFile);
+                    this.showCompressionResult(compressedFile, duration);
+                    
+                } catch (error) {
+                    console.error('压缩失败:', error);
+                    this.showError('压缩失败，请重试');
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            async simulateProgress() {
+                return new Promise((resolve) => {
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += Math.random() * 20;
+                        if (progress >= 90) {
+                            progress = 90;
+                            clearInterval(interval);
+                            resolve();
+                        }
+                        this.updateProgress(progress);
+                    }, 200);
+                });
+            }
+
+            updateProgress(percentage) {
+                const circumference = 2 * Math.PI * 40;
+                const offset = circumference - (percentage / 100 * circumference);
+                this.progressCircle.style.strokeDashoffset = offset;
+                this.progressText.textContent = `${Math.round(percentage)}%`;
+            }
+
+            async compressImage(file, quality, format) {
+                return new Promise((resolve) => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    
+                    img.onload = () => {
+                        // Calculate new dimensions (maintain aspect ratio)
+                        const maxWidth = 2000;
+                        const maxHeight = 2000;
+                        let width = img.width;
+                        let height = img.height;
+
+                        // Resize if image is too large
+                        if (width > maxWidth || height > maxHeight) {
+                            const ratio = Math.min(maxWidth / width, maxHeight / height);
+                            width = Math.round(width * ratio);
+                            height = Math.round(height * ratio);
+                        }
+
+                        // Set canvas dimensions
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        // Draw image with anti-aliasing
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Convert canvas to blob
+                        canvas.toBlob((blob) => {
+                            const compressedFile = new File([blob], this.getOutputFilename(file, format), {
+                                type: format,
+                                lastModified: Date.now()
+                            });
+                            
+                            // Update progress to 100%
+                            this.updateProgress(100);
+                            
+                            resolve(compressedFile);
+                        }, format, quality);
+                    };
+                    
+                    img.src = URL.createObjectURL(file);
+                });
+            }
+
+            getOutputFilename(file, format) {
+                const extension = format === 'image/jpeg' ? 'jpg' : 
+                                 format === 'image/png' ? 'png' : 'webp';
+                const name = file.name.replace(/\.[^/.]+$/, "");
+                return `${name}_compressed.${extension}`;
+            }
+
+            showCompressionResult(compressedFile, duration) {
+                // Show compressed image
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.compressedImage.src = e.target.result;
+                    this.compressedImage.onload = () => {
+                        this.updateCompressionInfo(compressedFile, duration);
+                        this.showDownloadSection();
+                    };
+                };
+                reader.readAsDataURL(compressedFile);
+            }
+
+            updateCompressionInfo(compressedFile, duration) {
+                // Update compressed file info
+                const compressedSize = this.formatFileSize(compressedFile.size);
+                this.compressedSize.textContent = compressedSize;
+
+                const dimensions = `${this.compressedImage.width} × ${this.compressedImage.height}`;
+                this.compressedDimensions.textContent = dimensions;
+
+                // Calculate stats
+                const originalSize = this.currentFile.size;
+                const compressedSizeBytes = compressedFile.size;
+                const compressionRatio = Math.round((1 - compressedSizeBytes / originalSize) * 100);
+                const sizeReduction = this.formatFileSize(originalSize - compressedSizeBytes);
+
+                this.compressionRatio.textContent = `${compressionRatio}%`;
+                this.sizeReduction.textContent = sizeReduction;
+                this.compressionTime.textContent = `${duration}s`;
+
+                // Update download link
+                this.downloadBtn.download = compressedFile.name;
+                this.downloadBtn.href = URL.createObjectURL(compressedFile);
+            }
+
+            showDownloadSection() {
+                this.downloadSection.classList.remove('hidden');
+                
+                // Scroll to download section smoothly
+                setTimeout(() => {
+                    this.downloadSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }, 500);
+            }
+
+            downloadCurrentImage() {
+                // Already handled by the download attribute
+                this.showNotification('下载已开始', 'success');
+            }
+
+            async downloadAllImages() {
+                if (this.compressedFiles.length === 0) {
+                    this.showNotification('没有可下载的文件', 'warning');
+                    return;
+                }
+
+                if (this.compressedFiles.length === 1) {
+                    this.downloadCurrentImage();
+                    return;
+                }
+
+                try {
+                    // For multiple files, we would normally zip them
+                    // This is a simplified version that downloads each file
+                    this.compressedFiles.forEach((file, index) => {
+                        setTimeout(() => {
+                            const link = document.createElement('a');
+                            link.href = URL.createObjectURL(file);
+                            link.download = file.name;
+                            link.click();
+                            URL.revokeObjectURL(link.href);
+                        }, index * 100);
+                    });
+
+                    this.showNotification(`正在下载 ${this.compressedFiles.length} 个文件`, 'success');
+                } catch (error) {
+                    this.showNotification('下载失败', 'error');
+                }
+            }
+
+            resetForm() {
+                // Reset all inputs and clear files
+                this.fileInput.value = '';
+                this.cameraInput.value = '';
+                this.selectedFiles = [];
+                this.compressedFiles = [];
+                this.currentFile = null;
+
+                // Reset controls
+                this.qualitySlider.value = 80;
+                this.qualityValue.textContent = '80%';
+                this.formatSelect.value = 'image/jpeg';
+
+                // Hide sections
+                this.compressionControls.classList.add('hidden');
+                this.previewSection.classList.add('hidden');
+                this.downloadSection.classList.add('hidden');
+
+                // Clear images
+                this.originalImage.src = '';
+                this.compressedImage.src = '';
+
+                // Reset stats
+                this.originalSize.textContent = '';
+                this.compressedSize.textContent = '';
+                this.originalDimensions.textContent = '';
+                this.compressedDimensions.textContent = '';
+                this.compressionRatio.textContent = '0%';
+                this.sizeReduction.textContent = '0 MB';
+                this.compressionTime.textContent = '0s';
+
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                this.showNotification('已重置', 'info');
+            }
+
+            showLoading() {
+                this.loadingModal.classList.remove('hidden');
+                this.updateProgress(0);
+            }
+
+            hideLoading() {
+                setTimeout(() => {
+                    this.loadingModal.classList.add('hidden');
+                }, 500);
+            }
+
+            showError(message) {
+                this.loadingMessage.textContent = message;
+                this.loadingMessage.style.color = '#ef4444';
+            }
+
+            showNotification(message, type = 'info') {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 px-6 py-3 rounded-xl text-white font-semibold z-50 transition-all duration-300 transform translate-x-full`;
+                
+                // Set color based on type
+                switch(type) {
+                    case 'success':
+                        notification.classList.add('bg-green-500');
+                        break;
+                    case 'warning':
+                        notification.classList.add('bg-yellow-500');
+                        break;
+                    case 'error':
+                        notification.classList.add('bg-red-500');
+                        break;
+                    default:
+                        notification.classList.add('bg-blue-500');
+                }
+
+                notification.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fa fa-check-circle mr-2"></i>
+                        ${message}
+                    </div>
+                `;
+
+                document.body.appendChild(notification);
+
+                // Show notification
+                setTimeout(() => {
+                    notification.classList.remove('translate-x-full');
+                }, 100);
+
+                // Hide notification
+                setTimeout(() => {
+                    notification.classList.add('translate-x-full');
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 3000);
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new ImageCompressor();
+        });
+
+        // Add some global styles for better UX
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Page is hidden
+            } else {
+                // Page is visible
+            }
+        });
+
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 's':
+                        e.preventDefault();
+                        const downloadBtn = document.getElementById('downloadBtn');
+                        if (!downloadBtn.classList.contains('hidden')) {
+                            downloadBtn.click();
+                        }
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        const resetBtn = document.getElementById('resetBtn');
+                        if (!resetBtn.classList.contains('hidden')) {
+                            resetBtn.click();
+                        }
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
